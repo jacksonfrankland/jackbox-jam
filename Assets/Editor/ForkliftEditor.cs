@@ -11,19 +11,27 @@ public class ForkliftEditor : Editor
         var script = (Forklift)target;
         if (GUILayout.Button("Move Forward"))
         {
+            // script.Level.LogForkliftDetails("Before Move Forward");
             script.MoveForward();
+            // script.Level.LogForkliftDetails("After Move Forward");
         }
         if (GUILayout.Button("Move Backwards"))
         {
+            // script.Level.LogForkliftDetails("Before Move Backwards");
             script.MoveForward(-1);
+            // script.Level.LogForkliftDetails("After Move Backwards");
         }
         if (GUILayout.Button("Rotate Clockwise"))
         {
+            // script.Level.LogForkliftDetails("Before Rotate Clockwise");
             script.RotateClockwise();
+            // script.Level.LogForkliftDetails("After Rotate Clockwise");
         }
         if (GUILayout.Button("Rotate Anti-Clockwise"))
         {
+            // script.Level.LogForkliftDetails("Before Rotate Anti-Clockwise");
             script.RotateAnticlockwise();
+            // script.Level.LogForkliftDetails("After Rotate Anti-Clockwise");
         }
 
     }

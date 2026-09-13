@@ -12,11 +12,20 @@ public class Forklift : MonoBehaviour
 
     private void Awake()
     {
-        Level.AddForklift(this);
         Position.x = (int)Math.Round(transform.position.x);
         Position.y = (int)Math.Round(transform.position.y);
         transform.position = TilesTransform.Value.position + new Vector3(Position.x, Position.y, 0);
         Direction = Vector2Int.RoundToInt(transform.up) * -1;
+    }
+
+    private void OnEnable()
+    {
+        Level.AddForklift(this);
+    }
+
+    private void OnDisable()
+    {
+        Level.RemoveForklift(this);
     }
 
     public void MoveForward(int value = 1)
@@ -48,7 +57,6 @@ public class Forklift : MonoBehaviour
         otherForklift.Position += pushDirection;
         var targetWorldPosition = TilesTransform.Value.position + new Vector3(otherForklift.Position.x, otherForklift.Position.y, 0);
         Tween.Position(otherForklift.GetComponent<Transform>(), targetWorldPosition, .3f, Ease.InOutQuad);
-
     }
 
     public void RotateClockwise()
