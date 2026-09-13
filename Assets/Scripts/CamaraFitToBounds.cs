@@ -43,7 +43,7 @@ public class CamaraFitToBounds : MonoBehaviour
         var contentAspect = dimensions.x / dimensions.y;
         var screenAspect = _camera.pixelWidth / (float)_camera.pixelHeight;
         _camera.orthographicSize = screenAspect >= contentAspect ? dimensions.y / 2f : (dimensions.x / screenAspect) / 2f;
-        transform.position = new Vector3(bounds.center.x, bounds.center.y, transform.position.z);
+        transform.position = new Vector3(bounds.center.x, bounds.center.y, -10f);
         _lastScreenDimensions = new Vector2Int(Screen.width, Screen.height);
     }
 
