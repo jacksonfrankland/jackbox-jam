@@ -34,30 +34,12 @@ public class Forklift : MonoBehaviour
         {
             Position
         };
-        Pushed(Position + (Direction * value), Direction * value, pushedSoFar);
+        Level.PushForklift(Position + (Direction * value), Direction * value, pushedSoFar);
         Position += (Direction * value);
         var targetWorldPosition = TilesTransform.Value.position + new Vector3(Position.x, Position.y, 0);
         Tween.Position(transform, targetWorldPosition, .3f, Ease.InOutQuad);
     }
 
-    public void Pushed(Vector2Int targetPosition, Vector2Int pushDirection, List<Vector2Int> pushedSoFar)
-    {
-        if (pushedSoFar.Contains(targetPosition)) return;
-        var otherForklift = Level.GetForklift(targetPosition);
-        if (!otherForklift) return;
-
-        pushedSoFar.Add(targetPosition);
-        Pushed(targetPosition + pushDirection, pushDirection, pushedSoFar);
-        if ((otherForklift.Direction.x == pushDirection.y && otherForklift.Direction.y == -pushDirection.x)
-            || (otherForklift.Direction.x == -pushDirection.y && otherForklift.Direction.y == pushDirection.x))
-        {
-            Pushed(targetPosition + otherForklift.Direction, pushDirection, pushedSoFar);
-        }
-
-        otherForklift.Position += pushDirection;
-        var targetWorldPosition = TilesTransform.Value.position + new Vector3(otherForklift.Position.x, otherForklift.Position.y, 0);
-        Tween.Position(otherForklift.GetComponent<Transform>(), targetWorldPosition, .3f, Ease.InOutQuad);
-    }
 
     public void RotateClockwise()
     {
