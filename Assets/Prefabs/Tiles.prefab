@@ -2033,7 +2033,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3190397059299777384}
-  - component: {fileID: 8340353604295370315}
+  - component: {fileID: 5371226595534186388}
   m_Layer: 0
   m_Name: Tiles
   m_TagString: Untagged
@@ -2137,7 +2137,7 @@ Transform:
   - {fileID: 6877618301951957249}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8340353604295370315
+--- !u!114 &5371226595534186388
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2146,10 +2146,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 3140804482756848275}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7cc00bc061d164f57b7b0cfb30e105cb, type: 3}
+  m_Script: {fileID: 11500000, guid: 1ccd339b6385a4511b62b8d60bfe8909, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Tiles
-  TransformVariable: {fileID: 11400000, guid: 671ec35a366164003ab7a0232f34ccdd, type: 2}
+  m_EditorClassIdentifier: Assembly-CSharp::TransformToVariable
+  Variable: {fileID: 11400000, guid: 671ec35a366164003ab7a0232f34ccdd, type: 2}
 --- !u!1 &3284597792559974968
 GameObject:
   m_ObjectHideFlags: 0
