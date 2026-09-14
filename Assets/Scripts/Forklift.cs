@@ -59,8 +59,8 @@ public class Forklift : MonoBehaviour
         {
             Position
         };
-        Level.RotateForklift(Position + Direction, transform, rotatedSoFar);
-        Level.GetForkliftsFacingPosition(Position).ForEach(forklift => Level.RotateForklift(forklift.Position, transform, rotatedSoFar));
+        Level.RotateForklift(Position + Direction, newDirection, transform, rotatedSoFar);
+        Level.GetForkliftsFacingPosition(Position).ForEach(forklift => Level.RotateForklift(forklift.Position, newDirection, transform, rotatedSoFar));
 
         Direction = newDirection;
         var angle = Mathf.Atan2(Direction.x, -Direction.y) * Mathf.Rad2Deg;

@@ -103,7 +103,7 @@ public class Level : ScriptableObject
         });
     }
 
-    public void RotateForklift(Vector2Int targetPosition, Transform pivot, List<Vector2Int> rotatedSoFar)
+    public void RotateForklift(Vector2Int targetPosition, Vector2Int rotationDirection, Transform pivot, List<Vector2Int> rotatedSoFar)
     {
         if (rotatedSoFar.Contains(targetPosition)) return;
         rotatedSoFar.Add(targetPosition);
@@ -112,7 +112,13 @@ public class Level : ScriptableObject
 
         forklift.transform.SetParent(pivot, worldPositionStays: true);
 
-        RotateForklift(forklift.Position + forklift.Direction, pivot, rotatedSoFar);
-        GetForkliftsFacingPosition(forklift.Position).ForEach(f => RotateForklift(f.Position, pivot, rotatedSoFar));
+        if (forklift.Direction != (rotationDirection * -1))
+        {
+            RotateForklift(forklift.Position + forklift.Direction, rotationDirection, pivot, rotatedSoFar);
+        }
+
+        GetForkliftsFacingPosition(forklift.Position)
+        .FindAll(f => f.Direction != rotationDirection)
+        .ForEach(f => RotateForklift(f.Position, rotationDirection, pivot, rotatedSoFar));
     }
 }
