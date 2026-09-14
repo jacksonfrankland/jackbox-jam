@@ -9,7 +9,7 @@ public class Level : ScriptableObject
 {
     public TransformVariable TilesTransform;
 
-    private readonly List<Forklift> _forklifts = new();
+    private readonly List<Element> _elements = new();
     public bool RotationInProgress = false;
 
     private void OnEnable()
@@ -24,38 +24,45 @@ public class Level : ScriptableObject
 
     private void HandleSceneUnloaded(Scene scene)
     {
-        _forklifts.Clear();
+        _elements.Clear();
     }
 
-    public Forklift GetForklift(Vector2Int position)
+    public T GetElement<T>(Vector2Int position) where T : Element
     {
-        return GetForklift(position.x, position.y);
+        return GetElement<T>(position.x, position.y);
     }
 
-    public Forklift GetForklift(int x, int y)
+    public T GetElement<T>(int x, int y) where T : Element
     {
-        _forklifts.RemoveAll(forklift => !forklift);
-        return _forklifts.Find(forklift => forklift.Position.x == x && forklift.Position.y == y);
-    }
-
-    public void AddForklift(Forklift forklift)
-    {
-        _forklifts.RemoveAll(f => !f);
-        if (!_forklifts.Contains(forklift))
+        _elements.RemoveAll(element => !element);
+        foreach (var element in _elements)
         {
-            _forklifts.Add(forklift);
+            if (element is T typed && typed.Position.x == x && typed.Position.y == y)
+            {
+                return typed;
+            }
+        }
+        return null;
+    }
+
+    public void AddElement(Element element)
+    {
+        _elements.RemoveAll(f => !f);
+        if (!_elements.Contains(element))
+        {
+            _elements.Add(element);
         }
     }
 
-    public void RemoveForklift(Forklift forklift)
+    public void RemoveElement(Element element)
     {
-        _forklifts.Remove(forklift);
+        _elements.Remove(element);
     }
 
     public void LogForkliftDetails(string context)
     {
         Debug.Log($"[Level] {context}");
-        foreach (var forklift in _forklifts)
+        foreach (var forklift in _elements)
         {
             Debug.Log($"  {forklift.name}: Position={forklift.Position}, Direction={forklift.Direction}");
         }
@@ -64,7 +71,7 @@ public class Level : ScriptableObject
     public void PushForklift(Vector2Int targetPosition, Vector2Int pushDirection, List<Vector2Int> pushedSoFar)
     {
         if (pushedSoFar.Contains(targetPosition)) return;
-        var otherForklift = GetForklift(targetPosition);
+        var otherForklift = GetElement<Forklift>(targetPosition);
         if (!otherForklift) return;
 
         pushedSoFar.Add(targetPosition);
@@ -80,19 +87,27 @@ public class Level : ScriptableObject
         Tween.Position(otherForklift.GetComponent<Transform>(), targetWorldPosition, .3f, Ease.InOutQuad);
     }
 
-    public List<Forklift> GetForkliftsFacingPosition(Vector2Int targetPosition)
+    public List<T> GetElementsFacingPosition<T>(Vector2Int targetPosition) where T : Element
     {
-        return _forklifts.FindAll(forklift => targetPosition == (forklift.Position + forklift.Direction));
+        var result = new List<T>();
+        foreach (var element in _elements)
+        {
+            if (element is T typed && targetPosition == typed.Position + typed.Direction)
+            {
+                result.Add(typed);
+            }
+        }
+        return result;
     }
 
     public void ClearForkliftParents()
     {
-        _forklifts.ForEach(forklift => forklift.transform.SetParent(null, true));
+        _elements.ForEach(forklift => forklift.transform.SetParent(null, true));
     }
 
     public void SettleForklifts()
     {
-        _forklifts.ForEach(forklift =>
+        _elements.ForEach(forklift =>
         {
             forklift.Position.x = (int)Math.Round(forklift.transform.position.x);
             forklift.Position.y = (int)Math.Round(forklift.transform.position.y);
@@ -110,7 +125,7 @@ public class Level : ScriptableObject
     {
         if (rotatedSoFar.Contains(targetPosition)) return;
         rotatedSoFar.Add(targetPosition);
-        var forklift = GetForklift(targetPosition);
+        var forklift = GetElement<Forklift>(targetPosition);
         if (!forklift) return;
 
         forklift.transform.SetParent(pivot, worldPositionStays: true);
@@ -120,7 +135,7 @@ public class Level : ScriptableObject
             RotateForklift(forklift.Position + forklift.Direction, rotationDirection, pivot, rotatedSoFar);
         }
 
-        GetForkliftsFacingPosition(forklift.Position)
+        GetElementsFacingPosition<Forklift>(forklift.Position)
         .FindAll(f => f.Direction != rotationDirection)
         .ForEach(f => RotateForklift(f.Position, rotationDirection, pivot, rotatedSoFar));
     }

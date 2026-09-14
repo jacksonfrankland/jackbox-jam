@@ -3,29 +3,17 @@ using UnityEngine;
 using PrimeTween;
 using System.Collections.Generic;
 
-public class Forklift : MonoBehaviour
+public class Forklift : Element
 {
-    public Vector2Int Position;
-    public Vector2Int Direction;
-    public TransformVariable TilesTransform;
-    public Level Level;
-
-    private void Awake()
-    {
-        Position.x = (int)Math.Round(transform.position.x);
-        Position.y = (int)Math.Round(transform.position.y);
-        transform.position = TilesTransform.Value.position + new Vector3(Position.x, Position.y, 0);
-        Direction = Vector2Int.RoundToInt(transform.up) * -1;
-    }
 
     private void OnEnable()
     {
-        Level.AddForklift(this);
+        Level.AddElement(this);
     }
 
     private void OnDisable()
     {
-        Level.RemoveForklift(this);
+        Level.RemoveElement(this);
     }
 
     public void MoveForward(int value = 1)
@@ -60,7 +48,7 @@ public class Forklift : MonoBehaviour
             Position
         };
         Level.RotateForklift(Position + Direction, newDirection, transform, rotatedSoFar);
-        Level.GetForkliftsFacingPosition(Position).ForEach(forklift => Level.RotateForklift(forklift.Position, newDirection, transform, rotatedSoFar));
+        Level.GetElementsFacingPosition<Forklift>(Position).ForEach(forklift => Level.RotateForklift(forklift.Position, newDirection, transform, rotatedSoFar));
 
         Direction = newDirection;
         var angle = Mathf.Atan2(Direction.x, -Direction.y) * Mathf.Rad2Deg;
