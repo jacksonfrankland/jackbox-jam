@@ -97,9 +97,12 @@ public class Level : ScriptableObject
             forklift.Position.x = (int)Math.Round(forklift.transform.position.x);
             forklift.Position.y = (int)Math.Round(forklift.transform.position.y);
             forklift.transform.position = TilesTransform.Value.position + new Vector3(forklift.Position.x, forklift.Position.y, 0);
-            forklift.Direction = Vector2Int.RoundToInt(forklift.transform.up) * -1;
-            var angle = Mathf.Atan2(forklift.Direction.x, -forklift.Direction.y) * Mathf.Rad2Deg;
-            forklift.transform.rotation = Quaternion.Euler(0, 0, angle);
+            var rawUp = forklift.transform.up;
+            var rawAngle = Mathf.Atan2(-rawUp.x, rawUp.y) * Mathf.Rad2Deg;
+            var snappedAngle = Mathf.Round(rawAngle / 90f) * 90f;
+            var rad = snappedAngle * Mathf.Deg2Rad;
+            forklift.Direction = new Vector2Int(Mathf.RoundToInt(Mathf.Sin(rad)), Mathf.RoundToInt(-Mathf.Cos(rad)));
+            forklift.transform.rotation = Quaternion.Euler(0, 0, snappedAngle);
         });
     }
 
