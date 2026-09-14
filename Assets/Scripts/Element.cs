@@ -7,6 +7,7 @@ public class Element : MonoBehaviour
     public Vector2Int Direction;
     public TransformVariable TilesTransform;
     public Level Level;
+    public virtual bool CanBePushed => true;
 
     private void Awake()
     {

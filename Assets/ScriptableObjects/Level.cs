@@ -45,6 +45,19 @@ public class Level : ScriptableObject
         return null;
     }
 
+    public Element GetPushableElement(Vector2Int position)
+    {
+        _elements.RemoveAll(element => !element);
+        foreach (var element in _elements)
+        {
+            if (element.CanBePushed && element.Position == position)
+            {
+                return element;
+            }
+        }
+        return null;
+    }
+
     public void AddElement(Element element)
     {
         _elements.RemoveAll(f => !f);
@@ -68,23 +81,23 @@ public class Level : ScriptableObject
         }
     }
 
-    public void PushForklift(Vector2Int targetPosition, Vector2Int pushDirection, List<Vector2Int> pushedSoFar)
+    public void PushElement(Vector2Int targetPosition, Vector2Int pushDirection, List<Vector2Int> pushedSoFar)
     {
         if (pushedSoFar.Contains(targetPosition)) return;
-        var otherForklift = GetElement<Forklift>(targetPosition);
-        if (!otherForklift) return;
+        var otherElement = GetPushableElement(targetPosition);
+        if (!otherElement) return;
 
         pushedSoFar.Add(targetPosition);
-        PushForklift(targetPosition + pushDirection, pushDirection, pushedSoFar);
-        if ((otherForklift.Direction.x == pushDirection.y && otherForklift.Direction.y == -pushDirection.x)
-            || (otherForklift.Direction.x == -pushDirection.y && otherForklift.Direction.y == pushDirection.x))
+        PushElement(targetPosition + pushDirection, pushDirection, pushedSoFar);
+        if (otherElement is Forklift && ((otherElement.Direction.x == pushDirection.y && otherElement.Direction.y == -pushDirection.x)
+            || (otherElement.Direction.x == -pushDirection.y && otherElement.Direction.y == pushDirection.x)))
         {
-            PushForklift(targetPosition + otherForklift.Direction, pushDirection, pushedSoFar);
+            PushElement(targetPosition + otherElement.Direction, pushDirection, pushedSoFar);
         }
 
-        otherForklift.Position += pushDirection;
-        var targetWorldPosition = TilesTransform.Value.position + new Vector3(otherForklift.Position.x, otherForklift.Position.y, 0);
-        Tween.Position(otherForklift.GetComponent<Transform>(), targetWorldPosition, .3f, Ease.InOutQuad);
+        otherElement.Position += pushDirection;
+        var targetWorldPosition = TilesTransform.Value.position + new Vector3(otherElement.Position.x, otherElement.Position.y, 0);
+        Tween.Position(otherElement.GetComponent<Transform>(), targetWorldPosition, .3f, Ease.InOutQuad);
     }
 
     public List<T> GetElementsFacingPosition<T>(Vector2Int targetPosition) where T : Element
@@ -145,13 +158,13 @@ public class Level : ScriptableObject
         List<Vector2Int> previousPositions = new();
         foreach (var element in _elements)
         {
-            if (element is ConveyerBelt) continue;
+            if (!element.CanBePushed) continue;
             if (previousPositions.Contains(element.Position)) continue;
             var conveyerBelt = GetElement<ConveyerBelt>(element.Position);
             if (!conveyerBelt) continue;
 
             previousPositions.Add(element.Position);
-            PushForklift(element.Position, conveyerBelt.Direction, new List<Vector2Int> { });
+            PushElement(element.Position, conveyerBelt.Direction, new List<Vector2Int> { });
         }
     }
 }

@@ -204,6 +204,7 @@ MonoBehaviour:
   Direction: {x: 0, y: 0}
   TilesTransform: {fileID: 11400000, guid: 671ec35a366164003ab7a0232f34ccdd, type: 2}
   Level: {fileID: 11400000, guid: 9047586119c0c490398197bf7d812a13, type: 2}
+  CanBePushed: 1
 --- !u!61 &8992969336806105216
 BoxCollider2D:
   m_ObjectHideFlags: 0

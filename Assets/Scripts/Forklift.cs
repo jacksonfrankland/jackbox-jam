@@ -11,7 +11,7 @@ public class Forklift : Element
         {
             Position
         };
-        Level.PushForklift(Position + (Direction * value), Direction * value, pushedSoFar);
+        Level.PushElement(Position + (Direction * value), Direction * value, pushedSoFar);
         Position += Direction * value;
         var targetWorldPosition = TilesTransform.Value.position + new Vector3(Position.x, Position.y, 0);
         Tween.Position(transform, targetWorldPosition, .3f, Ease.InOutQuad);
