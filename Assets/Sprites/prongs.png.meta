@@ -1,10 +1,13 @@
 fileFormatVersion: 2
-guid: bf1ef6f320fa34ea9b7903a7cb7d885a
+guid: 23f5352cbee1f4f34a43bda55013fb2f
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1297662737411420145
-    second: forkLift_0
+      213: -5386352900907389962
+    second: prongs_0
+  - first:
+      213: -8504820273845610149
+    second: prongs_1
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -115,23 +118,45 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: forkLift_0
+      name: prongs_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 200
-        height: 200
-      alignment: 9
-      pivot: {x: 0.5, y: 0.71428573}
+        width: 31
+        height: 150
+      alignment: 0
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f00d45a9d96cdfde0800000000000000
-      internalID: -1297662737411420145
+      spriteID: 6fb25822394df35b0800000000000000
+      internalID: -5386352900907389962
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: prongs_1
+      rect:
+        serializedVersion: 2
+        x: 129
+        y: 0
+        width: 31
+        height: 150
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b5954ea750fc8f980800000000000000
+      internalID: -8504820273845610149
       vertices: []
       indices: 
       edges: []
@@ -140,7 +165,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: a17c51463a2644d0ca524feae071382b
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -150,7 +175,8 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      forkLift_0: -1297662737411420145
+      prongs_0: -5386352900907389962
+      prongs_1: -8504820273845610149
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
