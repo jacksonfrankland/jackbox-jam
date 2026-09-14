@@ -16,4 +16,13 @@ public class Element : MonoBehaviour
         Direction = Vector2Int.RoundToInt(transform.up) * -1;
     }
 
+    private void OnEnable()
+    {
+        Level.AddElement(this);
+    }
+
+    private void OnDisable()
+    {
+        Level.RemoveElement(this);
+    }
 }

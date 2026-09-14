@@ -139,4 +139,19 @@ public class Level : ScriptableObject
         .FindAll(f => f.Direction != rotationDirection)
         .ForEach(f => RotateForklift(f.Position, rotationDirection, pivot, rotatedSoFar));
     }
+
+    public void RunConveyerBelts()
+    {
+        List<Vector2Int> previousPositions = new();
+        foreach (var element in _elements)
+        {
+            if (element is ConveyerBelt) continue;
+            if (previousPositions.Contains(element.Position)) continue;
+            var conveyerBelt = GetElement<ConveyerBelt>(element.Position);
+            if (!conveyerBelt) continue;
+
+            previousPositions.Add(element.Position);
+            PushForklift(element.Position, conveyerBelt.Direction, new List<Vector2Int> { });
+        }
+    }
 }

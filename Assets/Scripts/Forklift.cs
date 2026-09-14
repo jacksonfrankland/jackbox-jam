@@ -5,17 +5,6 @@ using System.Collections.Generic;
 
 public class Forklift : Element
 {
-
-    private void OnEnable()
-    {
-        Level.AddElement(this);
-    }
-
-    private void OnDisable()
-    {
-        Level.RemoveElement(this);
-    }
-
     public void MoveForward(int value = 1)
     {
         var pushedSoFar = new List<Vector2Int>
