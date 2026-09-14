@@ -12,3 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 476f7ddd4fb614df9b86a2ef594492b2, type: 3}
   m_Name: currentLevel
   m_EditorClassIdentifier: Assembly-CSharp::Level
+  TilesTransform: {fileID: 11400000, guid: 671ec35a366164003ab7a0232f34ccdd, type: 2}
