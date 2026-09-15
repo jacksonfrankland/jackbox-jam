@@ -35,10 +35,9 @@ public class Level : ScriptableObject
 
     public T GetElement<T>(int x, int y) where T : Element
     {
-        _elements.RemoveAll(element => !element);
         foreach (var element in _elements)
         {
-            if (element is T typed && typed.Position.x == x && typed.Position.y == y)
+            if (element && element is T typed && typed.Position.x == x && typed.Position.y == y)
             {
                 return typed;
             }
@@ -48,10 +47,9 @@ public class Level : ScriptableObject
 
     public Element GetPushableElement(Vector2Int position)
     {
-        _elements.RemoveAll(element => !element);
         foreach (var element in _elements)
         {
-            if (element.CanBePushed && element.Position == position)
+            if (element && element.CanBePushed && element.Position == position)
             {
                 return element;
             }
@@ -114,15 +112,28 @@ public class Level : ScriptableObject
         return result;
     }
 
-    public void ClearForkliftParents()
+    public List<Element> GetElementsParentedTo(Transform pivot)
     {
-        _elements.ForEach(forklift => forklift.transform.SetParent(null, true));
+        var result = new List<Element>();
+        foreach (var element in _elements)
+        {
+            if (element && element.transform.parent == pivot)
+            {
+                result.Add(element);
+            }
+        }
+        return result;
     }
 
-    public void SettleForklifts()
+    public void ClearForkliftParents(List<Element> affected)
+    {
+        affected.ForEach(element => element.transform.SetParent(null, true));
+    }
+
+    public void SettleForklifts(List<Element> affected)
     {
         var rawPositions = new Dictionary<Element, Vector3>();
-        _elements.ForEach(forklift =>
+        affected.ForEach(forklift =>
         {
             rawPositions[forklift] = forklift.transform.position;
             forklift.Position.x = (int)Math.Round(forklift.transform.position.x);
@@ -136,11 +147,13 @@ public class Level : ScriptableObject
             forklift.transform.rotation = Quaternion.Euler(0, 0, snappedAngle);
         });
 
-        ResolveOverlaps(rawPositions);
+        ResolveOverlaps(affected, rawPositions);
     }
 
-    private void ResolveOverlaps(Dictionary<Element, Vector3> rawPositions)
+    private void ResolveOverlaps(List<Element> affected, Dictionary<Element, Vector3> rawPositions)
     {
+        var affectedSet = new HashSet<Element>(affected);
+
         var groups = new Dictionary<Vector2Int, List<Element>>();
         foreach (var element in _elements)
         {
@@ -158,17 +171,21 @@ public class Level : ScriptableObject
         foreach (var (position, elements) in groups)
         {
             if (elements.Count <= 1) continue;
+            // a conflict that doesn't involve anything from this rotation was already
+            // resolved by a previous settle, no need to redo the work for it
+            if (!elements.Exists(affectedSet.Contains)) continue;
 
             // whichever element's raw (pre-round) position was actually closest to this
             // tile keeps it, the rest get displaced to the nearest free tile instead
             var targetWorld = TilesTransform.Value.position + new Vector3(position.x, position.y, 0);
-            elements.Sort((a, b) => Vector3.Distance(rawPositions[a], targetWorld)
-                .CompareTo(Vector3.Distance(rawPositions[b], targetWorld)));
+            Vector3 RawOf(Element e) => rawPositions.TryGetValue(e, out var raw) ? raw : e.transform.position;
+            elements.Sort((a, b) => Vector3.Distance(RawOf(a), targetWorld)
+                .CompareTo(Vector3.Distance(RawOf(b), targetWorld)));
 
             for (var i = 1; i < elements.Count; i++)
             {
                 var element = elements[i];
-                var travelDirection = GetTravelDirection(rawPositions[element], targetWorld);
+                var travelDirection = GetTravelDirection(RawOf(element), targetWorld);
                 var freePosition = FindFreePositionInDirection(position, travelDirection, occupied);
                 element.Position = freePosition;
                 element.transform.position = TilesTransform.Value.position + new Vector3(freePosition.x, freePosition.y, 0);

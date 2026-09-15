@@ -44,8 +44,9 @@ public class Forklift : Element
         var targetRotation = Quaternion.Euler(0, 0, angle);
         Tween.Rotation(transform, targetRotation, Level.AnimationSpeed, Ease.InOutQuad).OnComplete(Level, level =>
         {
-            level.ClearForkliftParents();
-            level.SettleForklifts();
+            var affected = level.GetElementsParentedTo(transform);
+            level.ClearForkliftParents(affected);
+            level.SettleForklifts(affected);
             Level.RotationInProgress = false;
         });
     }
