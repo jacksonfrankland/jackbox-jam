@@ -1,59 +1,45 @@
 using TMPro;
 using UnityEditor;
-using UnityEditor.Events;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
-using UnityEngine.UI;
 
 public static class HandUIBuilder
 {
+    private const float CardWidth = 1f;
+    private const float CardHeight = 1.4f;
+    private const float CardSpacing = 0.2f;
+    private const float ButtonWidth = 1.6f;
+    private const float ButtonHeight = 0.6f;
+    private const float ButtonGap = 0.3f;
+
     [MenuItem("GameObject/UI/Hand UI (Cards)", false, 10)]
     public static void CreateHandUI()
     {
-        EnsureEventSystem();
-
-        var canvasGO = new GameObject("HandCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        Undo.RegisterCreatedObjectUndo(canvasGO, "Create Hand UI");
-        var canvas = canvasGO.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        var scaler = canvasGO.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 0.5f;
-
         var handUIGO = new GameObject("HandUI", typeof(HandUI));
-        handUIGO.transform.SetParent(canvasGO.transform, false);
+        Undo.RegisterCreatedObjectUndo(handUIGO, "Create Hand UI");
         var handUI = handUIGO.GetComponent<HandUI>();
 
-        var panelGO = new GameObject("HandPanel", typeof(RectTransform), typeof(HorizontalLayoutGroup));
-        panelGO.transform.SetParent(canvasGO.transform, false);
-        var panelRect = (RectTransform)panelGO.transform;
-        panelRect.anchorMin = new Vector2(0.5f, 0f);
-        panelRect.anchorMax = new Vector2(0.5f, 0f);
-        panelRect.pivot = new Vector2(0.5f, 0f);
-        panelRect.anchoredPosition = new Vector2(0, 40);
-        panelRect.sizeDelta = new Vector2(700, 180);
+        var fitToBounds = Object.FindFirstObjectByType<CamaraFitToBounds>();
+        if (fitToBounds && fitToBounds.Target && fitToBounds.Target.Value)
+        {
+            handUI.BoardRoot = fitToBounds.Target.Value;
+        }
 
-        var layout = panelGO.GetComponent<HorizontalLayoutGroup>();
-        layout.spacing = 10;
-        layout.childAlignment = TextAnchor.MiddleCenter;
-        layout.childControlWidth = false;
-        layout.childControlHeight = false;
+        var totalCardsWidth = Hand.HandSize * CardWidth + (Hand.HandSize - 1) * CardSpacing;
+        var halfCardsWidth = totalCardsWidth / 2f;
 
         var cardSlots = new CardUI[Hand.HandSize];
         for (var i = 0; i < Hand.HandSize; i++)
         {
-            cardSlots[i] = CreateCardSlot(panelGO.transform, i);
+            var x = -halfCardsWidth + CardWidth / 2f + i * (CardWidth + CardSpacing);
+            cardSlots[i] = CreateCardSlot(handUIGO.transform, i, new Vector3(x, 0f, 0f));
         }
         handUI.CardSlots = cardSlots;
 
-        var dealButton = CreateButton("DealButton", "Deal", canvasGO.transform, new Vector2(-260, 240));
-        UnityEventTools.AddPersistentListener(dealButton.onClick, handUI.DealHand);
+        var dealX = -halfCardsWidth - ButtonWidth / 2f - ButtonGap;
+        handUI.DealButtonCollider = CreateWorldButton("DealButton", "Deal", handUIGO.transform, new Vector3(dealX, 0f, 0f));
 
-        var mulliganButton = CreateButton("MulliganButton", "Confirm Mulligan", canvasGO.transform, new Vector2(260, 240));
-        UnityEventTools.AddPersistentListener(mulliganButton.onClick, handUI.ConfirmMulligan);
+        var confirmX = halfCardsWidth + ButtonWidth / 2f + ButtonGap;
+        handUI.ConfirmMulliganButtonCollider = CreateWorldButton("ConfirmMulliganButton", "Confirm Mulligan", handUIGO.transform, new Vector3(confirmX, 0f, 0f));
 
         var selectedForklift = Selection.activeGameObject ? Selection.activeGameObject.GetComponent<Forklift>() : null;
         if (selectedForklift)
@@ -61,72 +47,80 @@ public static class HandUIBuilder
             handUI.TargetForklift = selectedForklift;
         }
 
-        Selection.activeGameObject = canvasGO;
+        Selection.activeGameObject = handUIGO;
     }
 
-    private static void EnsureEventSystem()
+    private static CardUI CreateCardSlot(Transform parent, int index, Vector3 localPosition)
     {
-        if (Object.FindFirstObjectByType<EventSystem>()) return;
-        var eventSystemGO = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
-        Undo.RegisterCreatedObjectUndo(eventSystemGO, "Create Event System");
-    }
-
-    private static CardUI CreateCardSlot(Transform parent, int index)
-    {
-        var go = new GameObject($"CardSlot_{index}", typeof(RectTransform), typeof(Image), typeof(CanvasGroup), typeof(CardUI));
+        var go = new GameObject($"CardSlot_{index}", typeof(SpriteRenderer), typeof(BoxCollider2D), typeof(CardUI));
         go.transform.SetParent(parent, false);
-        var rect = (RectTransform)go.transform;
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.sizeDelta = new Vector2(120, 160);
+        go.transform.localPosition = localPosition;
 
-        var image = go.GetComponent<Image>();
-        image.color = Color.white;
+        var spriteRenderer = go.GetComponent<SpriteRenderer>();
+        ConfigureBackgroundSprite(spriteRenderer, CardWidth, CardHeight, 10);
 
-        var label = CreateStretchedLabel(go.transform, "");
+        var collider = go.GetComponent<BoxCollider2D>();
+        collider.size = new Vector2(CardWidth, CardHeight);
+
+        var label = CreateCenteredLabel(go.transform, "", CardWidth, CardHeight);
         label.color = Color.black;
 
         var cardUI = go.GetComponent<CardUI>();
+        cardUI.Background = spriteRenderer;
         cardUI.Label = label;
-        cardUI.Background = image;
+        cardUI.Collider = collider;
 
         Undo.RegisterCreatedObjectUndo(go, "Create Card Slot");
         return cardUI;
     }
 
-    private static Button CreateButton(string name, string label, Transform parent, Vector2 anchoredPosition)
+    private static Collider2D CreateWorldButton(string name, string label, Transform parent, Vector3 localPosition)
     {
-        var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+        var go = new GameObject(name, typeof(SpriteRenderer), typeof(BoxCollider2D));
         go.transform.SetParent(parent, false);
-        var rect = (RectTransform)go.transform;
-        rect.anchorMin = new Vector2(0.5f, 0f);
-        rect.anchorMax = new Vector2(0.5f, 0f);
-        rect.pivot = new Vector2(0.5f, 0f);
-        rect.anchoredPosition = anchoredPosition;
-        rect.sizeDelta = new Vector2(180, 50);
+        go.transform.localPosition = localPosition;
 
-        var text = CreateStretchedLabel(go.transform, label);
+        var spriteRenderer = go.GetComponent<SpriteRenderer>();
+        ConfigureBackgroundSprite(spriteRenderer, ButtonWidth, ButtonHeight, 10);
+
+        var collider = go.GetComponent<BoxCollider2D>();
+        collider.size = new Vector2(ButtonWidth, ButtonHeight);
+
+        var text = CreateCenteredLabel(go.transform, label, ButtonWidth, ButtonHeight);
         text.color = Color.black;
 
-        Undo.RegisterCreatedObjectUndo(go, "Create Button");
-        return go.GetComponent<Button>();
+        Undo.RegisterCreatedObjectUndo(go, "Create World Button");
+        return collider;
     }
 
-    private static TextMeshProUGUI CreateStretchedLabel(Transform parent, string text)
+    private static void ConfigureBackgroundSprite(SpriteRenderer spriteRenderer, float width, float height, int sortingOrder)
     {
-        var textGO = new GameObject("Label", typeof(RectTransform));
-        textGO.transform.SetParent(parent, false);
-        var textRect = (RectTransform)textGO.transform;
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = Vector2.zero;
-        textRect.offsetMax = Vector2.zero;
+        spriteRenderer.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        spriteRenderer.drawMode = SpriteDrawMode.Sliced;
+        spriteRenderer.size = new Vector2(width, height);
+        spriteRenderer.color = Color.white;
+        spriteRenderer.sortingOrder = sortingOrder;
+    }
 
-        var label = textGO.AddComponent<TextMeshProUGUI>();
+    private static TextMeshPro CreateCenteredLabel(Transform parent, string text, float width, float height)
+    {
+        var textGO = new GameObject("Label");
+        textGO.transform.SetParent(parent, false);
+        textGO.transform.localPosition = Vector3.zero;
+
+        var label = textGO.AddComponent<TextMeshPro>();
+        var rectTransform = (RectTransform)label.transform;
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.sizeDelta = new Vector2(width, height);
+
         label.text = text;
         label.alignment = TextAlignmentOptions.Center;
-        label.fontSize = 20;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 0.5f;
+        label.fontSizeMax = 10f;
+        label.sortingOrder = 11;
         return label;
     }
 }

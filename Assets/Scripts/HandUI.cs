@@ -1,49 +1,167 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 public class HandUI : MonoBehaviour
 {
     public Forklift TargetForklift;
     public CardUI[] CardSlots = new CardUI[Hand.HandSize];
+    public Transform BoardRoot;
+    public Collider2D DealButtonCollider;
+    public Collider2D ConfirmMulliganButtonCollider;
     public float ShiftAnimationDuration = 0.15f;
     public float MulliganAnimationDuration = 0.3f;
+    public float DragThreshold = 0.15f;
+    public float GapBelowBoard = 1.5f;
 
     private readonly HashSet<int> _mulliganSelection = new();
-    private readonly List<Vector2> _homePositions = new();
-    private readonly List<float> _homeWorldX = new();
-    private readonly List<Vector3> _homeWorldPositions = new();
-    private RectTransform _panelRect;
-    private float _worldSlotSpacing;
+    private readonly List<Vector3> _homeLocalPositions = new();
+    private float _slotSpacing;
+    private Camera _camera;
+    private int _pressedCardIndex = -1;
     private int _draggedIndex = -1;
     private int _currentTargetIndex = -1;
+    private bool _isDragging;
+    private Vector3 _pressWorldPoint;
 
-    private void Start()
+    private void Awake()
     {
-        _panelRect = (RectTransform)CardSlots[0].transform.parent;
+        _camera = Camera.main;
 
-        var layoutGroup = _panelRect.GetComponent<HorizontalLayoutGroup>();
-        if (layoutGroup)
+        if (BoardRoot)
         {
-            LayoutRebuilder.ForceRebuildLayoutImmediate(_panelRect);
-            layoutGroup.enabled = false;
+            transform.SetParent(BoardRoot, worldPositionStays: false);
+            PositionBelowBoard();
         }
 
         for (var i = 0; i < CardSlots.Length; i++)
         {
-            CardSlots[i].Init(this, i);
-            _homePositions.Add(((RectTransform)CardSlots[i].transform).anchoredPosition);
-            _homeWorldX.Add(((RectTransform)CardSlots[i].transform).position.x);
-            _homeWorldPositions.Add(((RectTransform)CardSlots[i].transform).position);
+            CardSlots[i].SetIndex(i);
+            _homeLocalPositions.Add(CardSlots[i].transform.localPosition);
         }
-        _worldSlotSpacing = CardSlots.Length > 1 ? _homeWorldX[1] - _homeWorldX[0] : 1f;
+        _slotSpacing = CardSlots.Length > 1 ? _homeLocalPositions[1].x - _homeLocalPositions[0].x : 1f;
 
         RefreshDisplay();
     }
 
+    private void Update()
+    {
+        if (!_camera || Mouse.current == null) return;
+
+        var worldPoint = ScreenToWorldPoint(Mouse.current.position.ReadValue());
+
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            HandlePress(worldPoint);
+        }
+        else if (Mouse.current.leftButton.isPressed)
+        {
+            HandleHold(worldPoint);
+        }
+        else if (Mouse.current.leftButton.wasReleasedThisFrame)
+        {
+            HandleRelease();
+        }
+    }
+
+    private void PositionBelowBoard()
+    {
+        var renderers = BoardRoot.GetComponentsInChildren<Renderer>();
+        var hasBounds = false;
+        var bounds = new Bounds();
+        foreach (var candidate in renderers)
+        {
+            if (candidate.transform.IsChildOf(transform)) continue;
+            if (!hasBounds)
+            {
+                bounds = candidate.bounds;
+                hasBounds = true;
+            }
+            else
+            {
+                bounds.Encapsulate(candidate.bounds);
+            }
+        }
+        if (!hasBounds) return;
+
+        transform.localPosition = new Vector3(
+            bounds.center.x - BoardRoot.position.x,
+            bounds.min.y - BoardRoot.position.y - GapBelowBoard,
+            0f);
+    }
+
+    private Vector3 ScreenToWorldPoint(Vector2 screenPosition)
+    {
+        var distance = Mathf.Abs(_camera.transform.position.z - transform.position.z);
+        return _camera.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, distance));
+    }
+
+    private void HandlePress(Vector3 worldPoint)
+    {
+        if (DealButtonCollider && DealButtonCollider.OverlapPoint(worldPoint))
+        {
+            DealHand();
+            return;
+        }
+        if (ConfirmMulliganButtonCollider && ConfirmMulliganButtonCollider.OverlapPoint(worldPoint))
+        {
+            ConfirmMulligan();
+            return;
+        }
+
+        for (var i = 0; i < CardSlots.Length; i++)
+        {
+            if (CardSlots[i].Collider && CardSlots[i].Collider.OverlapPoint(worldPoint))
+            {
+                _pressedCardIndex = i;
+                _pressWorldPoint = worldPoint;
+                _isDragging = false;
+                return;
+            }
+        }
+    }
+
+    private void HandleHold(Vector3 worldPoint)
+    {
+        if (_pressedCardIndex < 0) return;
+
+        if (!_isDragging)
+        {
+            if (Vector3.Distance(worldPoint, _pressWorldPoint) < DragThreshold) return;
+            _isDragging = true;
+            BeginDrag(_pressedCardIndex);
+        }
+
+        var localX = transform.InverseTransformPoint(worldPoint).x;
+        var home = _homeLocalPositions[_pressedCardIndex];
+        CardSlots[_pressedCardIndex].MoveTo(new Vector3(localX, home.y, home.z), 0f);
+        UpdateDrag(_pressedCardIndex, localX);
+    }
+
+    private void HandleRelease()
+    {
+        if (_pressedCardIndex < 0) return;
+
+        if (_isDragging)
+        {
+            EndDrag(_pressedCardIndex);
+        }
+        else
+        {
+            ToggleMulliganSelection(_pressedCardIndex);
+        }
+
+        _pressedCardIndex = -1;
+        _isDragging = false;
+    }
+
     public void DealHand()
     {
-        if (!TargetForklift) return;
+        if (!TargetForklift)
+        {
+            Debug.LogWarning($"{nameof(HandUI)} on {name} has no {nameof(TargetForklift)} assigned.", this);
+            return;
+        }
         TargetForklift.Hand.Deal();
         _mulliganSelection.Clear();
         RefreshDisplay();
@@ -51,7 +169,12 @@ public class HandUI : MonoBehaviour
 
     public void ConfirmMulligan()
     {
-        if (!TargetForklift || TargetForklift.Hand.HasMulliganed) return;
+        if (!TargetForklift)
+        {
+            Debug.LogWarning($"{nameof(HandUI)} on {name} has no {nameof(TargetForklift)} assigned.", this);
+            return;
+        }
+        if (TargetForklift.Hand.HasMulliganed) return;
         var redrawnIndices = new List<int>(_mulliganSelection);
         TargetForklift.Hand.Mulligan(_mulliganSelection);
         _mulliganSelection.Clear();
@@ -71,17 +194,18 @@ public class HandUI : MonoBehaviour
         RefreshDisplay();
     }
 
-    public void BeginDrag(int index)
+    private void BeginDrag(int index)
     {
         _draggedIndex = index;
         _currentTargetIndex = index;
+        CardSlots[index].SetSortingOrder(20);
     }
 
-    public void UpdateDrag(int index, Vector3 pointerWorldPosition)
+    private void UpdateDrag(int index, float localX)
     {
         if (index != _draggedIndex) return;
 
-        var targetIndex = ComputeTargetIndex(pointerWorldPosition.x);
+        var targetIndex = ComputeTargetIndex(localX);
         if (targetIndex == _currentTargetIndex) return;
         _currentTargetIndex = targetIndex;
 
@@ -91,11 +215,11 @@ public class HandUI : MonoBehaviour
             var shift = 0;
             if (_draggedIndex < targetIndex && i > _draggedIndex && i <= targetIndex) shift = -1;
             else if (_draggedIndex > targetIndex && i >= targetIndex && i < _draggedIndex) shift = 1;
-            CardSlots[i].MoveTo(_homePositions[i + shift], ShiftAnimationDuration);
+            CardSlots[i].MoveTo(_homeLocalPositions[i + shift], ShiftAnimationDuration);
         }
     }
 
-    public void EndDrag(int index)
+    private void EndDrag(int index)
     {
         if (index != _draggedIndex) return;
 
@@ -103,6 +227,7 @@ public class HandUI : MonoBehaviour
         var targetSlot = _currentTargetIndex;
         _draggedIndex = -1;
         _currentTargetIndex = -1;
+        CardSlots[draggedSlot].SetSortingOrder(10);
 
         if (targetSlot != draggedSlot && TargetForklift)
         {
@@ -126,19 +251,19 @@ public class HandUI : MonoBehaviour
             }
         }
 
-        CardSlots[targetSlot].SettleAfterDrag(_homeWorldPositions[targetSlot], ShiftAnimationDuration);
+        CardSlots[targetSlot].MoveTo(_homeLocalPositions[targetSlot], ShiftAnimationDuration);
     }
 
-    private int ComputeTargetIndex(float worldX)
+    private int ComputeTargetIndex(float localX)
     {
-        for (var i = 0; i < _homeWorldX.Count; i++)
+        for (var i = 0; i < _homeLocalPositions.Count; i++)
         {
-            if (worldX < _homeWorldX[i] + _worldSlotSpacing / 2f)
+            if (localX < _homeLocalPositions[i].x + _slotSpacing / 2f)
             {
                 return i;
             }
         }
-        return _homeWorldX.Count - 1;
+        return _homeLocalPositions.Count - 1;
     }
 
     private void RefreshDisplay()
