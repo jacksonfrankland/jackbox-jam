@@ -20,6 +20,8 @@ public static class HandUIBuilder
         var scaler = canvasGO.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
 
         var handUIGO = new GameObject("HandUI", typeof(HandUI));
         handUIGO.transform.SetParent(canvasGO.transform, false);
