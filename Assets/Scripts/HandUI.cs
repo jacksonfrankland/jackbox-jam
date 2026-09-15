@@ -7,10 +7,12 @@ public class HandUI : MonoBehaviour
     public Forklift TargetForklift;
     public CardUI[] CardSlots = new CardUI[Hand.HandSize];
     public float ShiftAnimationDuration = 0.15f;
+    public float MulliganAnimationDuration = 0.3f;
 
     private readonly HashSet<int> _mulliganSelection = new();
     private readonly List<Vector2> _homePositions = new();
     private readonly List<float> _homeWorldX = new();
+    private readonly List<Vector3> _homeWorldPositions = new();
     private RectTransform _panelRect;
     private float _worldSlotSpacing;
     private int _draggedIndex = -1;
@@ -32,6 +34,7 @@ public class HandUI : MonoBehaviour
             CardSlots[i].Init(this, i);
             _homePositions.Add(((RectTransform)CardSlots[i].transform).anchoredPosition);
             _homeWorldX.Add(((RectTransform)CardSlots[i].transform).position.x);
+            _homeWorldPositions.Add(((RectTransform)CardSlots[i].transform).position);
         }
         _worldSlotSpacing = CardSlots.Length > 1 ? _homeWorldX[1] - _homeWorldX[0] : 1f;
 
@@ -48,10 +51,14 @@ public class HandUI : MonoBehaviour
 
     public void ConfirmMulligan()
     {
-        if (!TargetForklift) return;
+        if (!TargetForklift || TargetForklift.Hand.HasMulliganed) return;
+        var redrawnIndices = new List<int>(_mulliganSelection);
         TargetForklift.Hand.Mulligan(_mulliganSelection);
         _mulliganSelection.Clear();
-        RefreshDisplay();
+        foreach (var i in redrawnIndices)
+        {
+            CardSlots[i].PlayMulliganFlip(TargetForklift.Hand.Cards[i], MulliganAnimationDuration);
+        }
     }
 
     public void ToggleMulliganSelection(int index)
@@ -92,25 +99,34 @@ public class HandUI : MonoBehaviour
     {
         if (index != _draggedIndex) return;
 
-        if (_currentTargetIndex != _draggedIndex && TargetForklift)
+        var draggedSlot = _draggedIndex;
+        var targetSlot = _currentTargetIndex;
+        _draggedIndex = -1;
+        _currentTargetIndex = -1;
+
+        if (targetSlot != draggedSlot && TargetForklift)
         {
             var cards = new List<CardType>(TargetForklift.Hand.Cards);
-            var moved = cards[_draggedIndex];
-            cards.RemoveAt(_draggedIndex);
-            cards.Insert(_currentTargetIndex, moved);
+            var movedCard = cards[draggedSlot];
+            cards.RemoveAt(draggedSlot);
+            cards.Insert(targetSlot, movedCard);
             for (var i = 0; i < cards.Count; i++)
             {
                 TargetForklift.Hand.Cards[i] = cards[i];
             }
+
+            var slots = new List<CardUI>(CardSlots);
+            var movedSlot = slots[draggedSlot];
+            slots.RemoveAt(draggedSlot);
+            slots.Insert(targetSlot, movedSlot);
+            for (var i = 0; i < slots.Count; i++)
+            {
+                CardSlots[i] = slots[i];
+                CardSlots[i].SetIndex(i);
+            }
         }
 
-        _draggedIndex = -1;
-        _currentTargetIndex = -1;
-        RefreshDisplay();
-        for (var i = 0; i < CardSlots.Length; i++)
-        {
-            CardSlots[i].MoveTo(_homePositions[i], ShiftAnimationDuration);
-        }
+        CardSlots[targetSlot].SettleAfterDrag(_homeWorldPositions[targetSlot], ShiftAnimationDuration);
     }
 
     private int ComputeTargetIndex(float worldX)

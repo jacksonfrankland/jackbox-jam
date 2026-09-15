@@ -20,6 +20,7 @@ public class CardUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, ID
     private Transform _dragStartParent;
     private Vector3 _dragOffset;
     private Tween _moveTween;
+    private Tween _flipTween;
 
     public void Init(HandUI handUI, int index)
     {
@@ -33,6 +34,11 @@ public class CardUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, ID
         }
         _canvas = GetComponentInParent<Canvas>();
         _canvasRect = (RectTransform)_canvas.transform;
+    }
+
+    public void SetIndex(int index)
+    {
+        _index = index;
     }
 
     public void SetCard(CardType card, bool selected)
@@ -54,6 +60,40 @@ public class CardUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, ID
         {
             _rectTransform.anchoredPosition = Vector2.Lerp(start, anchoredPosition, t);
         }, Ease.InOutQuad);
+    }
+
+    public void SettleAfterDrag(Vector3 targetWorldPosition, float duration)
+    {
+        if (_moveTween.isAlive) _moveTween.Stop();
+        var start = _rectTransform.position;
+        _moveTween = Tween.Custom(0f, 1f, duration, t =>
+        {
+            _rectTransform.position = Vector3.Lerp(start, targetWorldPosition, t);
+        }, Ease.InOutQuad).OnComplete(() =>
+        {
+            transform.SetParent(_dragStartParent, worldPositionStays: true);
+        });
+    }
+
+    public void PlayMulliganFlip(CardType newCard, float duration)
+    {
+        if (_flipTween.isAlive) _flipTween.Stop();
+        var half = duration / 2f;
+        _flipTween = Tween.Custom(1f, 0f, half, t =>
+        {
+            var scale = _rectTransform.localScale;
+            scale.x = t;
+            _rectTransform.localScale = scale;
+        }, Ease.InQuad).OnComplete(() =>
+        {
+            SetCard(newCard, false);
+            _flipTween = Tween.Custom(0f, 1f, half, t =>
+            {
+                var scale = _rectTransform.localScale;
+                scale.x = t;
+                _rectTransform.localScale = scale;
+            }, Ease.OutQuad);
+        });
     }
 
     public void OnPointerClick(PointerEventData eventData)
@@ -86,7 +126,6 @@ public class CardUI : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, ID
     public void OnEndDrag(PointerEventData eventData)
     {
         _canvasGroup.blocksRaycasts = true;
-        transform.SetParent(_dragStartParent, worldPositionStays: false);
         _handUI.EndDrag(_index);
     }
 }
