@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 public class Level : ScriptableObject
 {
     public TransformVariable TilesTransform;
+    public float AnimationSpeed = .3f;
 
     private readonly List<Element> _elements = new();
     public bool RotationInProgress = false;
@@ -97,7 +98,7 @@ public class Level : ScriptableObject
 
         otherElement.Position += pushDirection;
         var targetWorldPosition = TilesTransform.Value.position + new Vector3(otherElement.Position.x, otherElement.Position.y, 0);
-        Tween.Position(otherElement.GetComponent<Transform>(), targetWorldPosition, .3f, Ease.InOutQuad);
+        Tween.Position(otherElement.GetComponent<Transform>(), targetWorldPosition, AnimationSpeed, Ease.InOutQuad);
     }
 
     public List<T> GetElementsFacingPosition<T>(Vector2Int targetPosition) where T : Element
@@ -120,8 +121,10 @@ public class Level : ScriptableObject
 
     public void SettleForklifts()
     {
+        var rawPositions = new Dictionary<Element, Vector3>();
         _elements.ForEach(forklift =>
         {
+            rawPositions[forklift] = forklift.transform.position;
             forklift.Position.x = (int)Math.Round(forklift.transform.position.x);
             forklift.Position.y = (int)Math.Round(forklift.transform.position.y);
             forklift.transform.position = TilesTransform.Value.position + new Vector3(forklift.Position.x, forklift.Position.y, 0);
@@ -132,23 +135,85 @@ public class Level : ScriptableObject
             forklift.Direction = new Vector2Int(Mathf.RoundToInt(Mathf.Sin(rad)), Mathf.RoundToInt(-Mathf.Cos(rad)));
             forklift.transform.rotation = Quaternion.Euler(0, 0, snappedAngle);
         });
+
+        ResolveOverlaps(rawPositions);
+    }
+
+    private void ResolveOverlaps(Dictionary<Element, Vector3> rawPositions)
+    {
+        var groups = new Dictionary<Vector2Int, List<Element>>();
+        foreach (var element in _elements)
+        {
+            if (!element.CanBePushed) continue;
+            if (!groups.TryGetValue(element.Position, out var group))
+            {
+                group = new List<Element>();
+                groups[element.Position] = group;
+            }
+            group.Add(element);
+        }
+
+        var occupied = new HashSet<Vector2Int>(groups.Keys);
+
+        foreach (var (position, elements) in groups)
+        {
+            if (elements.Count <= 1) continue;
+
+            // whichever element's raw (pre-round) position was actually closest to this
+            // tile keeps it, the rest get displaced to the nearest free tile instead
+            var targetWorld = TilesTransform.Value.position + new Vector3(position.x, position.y, 0);
+            elements.Sort((a, b) => Vector3.Distance(rawPositions[a], targetWorld)
+                .CompareTo(Vector3.Distance(rawPositions[b], targetWorld)));
+
+            for (var i = 1; i < elements.Count; i++)
+            {
+                var element = elements[i];
+                var travelDirection = GetTravelDirection(rawPositions[element], targetWorld);
+                var freePosition = FindFreePositionInDirection(position, travelDirection, occupied);
+                element.Position = freePosition;
+                element.transform.position = TilesTransform.Value.position + new Vector3(freePosition.x, freePosition.y, 0);
+                occupied.Add(freePosition);
+            }
+        }
+    }
+
+    private static Vector2Int GetTravelDirection(Vector3 fromWorld, Vector3 toWorld)
+    {
+        var delta = toWorld - fromWorld;
+        return Mathf.Abs(delta.x) >= Mathf.Abs(delta.y)
+            ? new Vector2Int(delta.x >= 0 ? 1 : -1, 0)
+            : new Vector2Int(0, delta.y >= 0 ? 1 : -1);
+    }
+
+    private static Vector2Int FindFreePositionInDirection(Vector2Int origin, Vector2Int direction, HashSet<Vector2Int> occupied)
+    {
+        var candidate = origin;
+        for (var step = 0; step < 50; step++)
+        {
+            candidate += direction;
+            if (!occupied.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
+        return origin;
     }
 
     public void RotateForklift(Vector2Int targetPosition, Vector2Int rotationDirection, Transform pivot, List<Vector2Int> rotatedSoFar)
     {
         if (rotatedSoFar.Contains(targetPosition)) return;
         rotatedSoFar.Add(targetPosition);
-        var forklift = GetElement<Forklift>(targetPosition);
-        if (!forklift) return;
+        var element = GetPushableElement(targetPosition);
+        if (!element) return;
 
-        forklift.transform.SetParent(pivot, worldPositionStays: true);
+        element.transform.SetParent(pivot, worldPositionStays: true);
 
-        if (forklift.Direction != (rotationDirection * -1))
+        if (element is Forklift && element.Direction != (rotationDirection * -1))
         {
-            RotateForklift(forklift.Position + forklift.Direction, rotationDirection, pivot, rotatedSoFar);
+            RotateForklift(element.Position + element.Direction, rotationDirection, pivot, rotatedSoFar);
         }
 
-        GetElementsFacingPosition<Forklift>(forklift.Position)
+        GetElementsFacingPosition<Forklift>(element.Position)
         .FindAll(f => f.Direction != rotationDirection)
         .ForEach(f => RotateForklift(f.Position, rotationDirection, pivot, rotatedSoFar));
     }

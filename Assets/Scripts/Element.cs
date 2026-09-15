@@ -26,4 +26,15 @@ public class Element : MonoBehaviour
     {
         Level.RemoveElement(this);
     }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (!Level.RotationInProgress) return;
+
+        if (transform.parent && !other.transform.parent)
+        {
+            other.transform.SetParent(transform.parent, worldPositionStays: true);
+        }
+    }
+
 }

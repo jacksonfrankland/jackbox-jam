@@ -14,7 +14,7 @@ public class Forklift : Element
         Level.PushElement(Position + (Direction * value), Direction * value, pushedSoFar);
         Position += Direction * value;
         var targetWorldPosition = TilesTransform.Value.position + new Vector3(Position.x, Position.y, 0);
-        Tween.Position(transform, targetWorldPosition, .3f, Ease.InOutQuad);
+        Tween.Position(transform, targetWorldPosition, Level.AnimationSpeed, Ease.InOutQuad);
     }
 
 
@@ -42,7 +42,7 @@ public class Forklift : Element
         Direction = newDirection;
         var angle = Mathf.Atan2(Direction.x, -Direction.y) * Mathf.Rad2Deg;
         var targetRotation = Quaternion.Euler(0, 0, angle);
-        Tween.Rotation(transform, targetRotation, .3f, Ease.InOutQuad).OnComplete(Level, level =>
+        Tween.Rotation(transform, targetRotation, Level.AnimationSpeed, Ease.InOutQuad).OnComplete(Level, level =>
         {
             level.ClearForkliftParents();
             level.SettleForklifts();
@@ -50,13 +50,4 @@ public class Forklift : Element
         });
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (!Level.RotationInProgress) return;
-
-        if (transform.parent && !other.transform.parent)
-        {
-            other.transform.SetParent(transform.parent, worldPositionStays: true);
-        }
-    }
 }

@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 212829252079555494}
   - component: {fileID: 7070581827026573002}
   - component: {fileID: 1895484206271695008}
+  - component: {fileID: 1562012208121912616}
   m_Layer: 0
   m_Name: Box
   m_TagString: Untagged
@@ -150,10 +151,36 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cd5292515fce9474980842c3671ab8e9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: '::'
   Position: {x: 0, y: 0}
   Direction: {x: 0, y: 0}
   TilesTransform: {fileID: 11400000, guid: 671ec35a366164003ab7a0232f34ccdd, type: 2}
   Level: {fileID: 11400000, guid: 9047586119c0c490398197bf7d812a13, type: 2}
-  CanBePushed: 1
+--- !u!50 &1562012208121912616
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7736311213012756818}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
