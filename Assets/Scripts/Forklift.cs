@@ -5,6 +5,8 @@ using System.Collections.Generic;
 
 public class Forklift : Element
 {
+    public Hand Hand = new();
+
     public void MoveForward(int value = 1)
     {
         var pushedSoFar = new List<Vector2Int>

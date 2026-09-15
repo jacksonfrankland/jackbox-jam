@@ -34,5 +34,18 @@ public class ForkliftEditor : Editor
             // script.Level.LogForkliftDetails("After Rotate Anti-Clockwise");
         }
 
+        EditorGUILayout.Space();
+        if (GUILayout.Button("Deal Hand"))
+        {
+            script.Hand.Deal();
+        }
+        if (GUILayout.Button("Mulligan All Cards"))
+        {
+            script.Hand.Mulligan(new[] { 0, 1, 2, 3, 4 });
+        }
+        if (GUILayout.Button("Log Hand"))
+        {
+            Debug.Log($"[{script.name}] Hand: {string.Join(", ", script.Hand.Cards)} (mulliganed: {script.Hand.HasMulliganed})");
+        }
     }
 }
